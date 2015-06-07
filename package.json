@@ -1,0 +1,16 @@
+{
+  "name": "aquaficio",
+  "version": "0.0.1",
+  "description": "OpenSprinkler controller program",
+  "main": "app.js",
+  "dependencies": {
+    "lodash": "^3.9.3",
+    "moment": "^2.10.3",
+    "pi-gpio": "0.0.7",
+    "q": "^1.4.1",
+    "winston": "^1.0.0"
+  },
+  "devDependencies": {},
+  "author": "Sean Sullivan <seansulli@gmail.com>",
+  "license": "MIT"
+}

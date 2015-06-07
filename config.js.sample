@@ -1,0 +1,12 @@
+var config = {
+    processLoopInterval: 60000,
+
+    pins: {
+        data: 13,
+        clock: 7,
+        latch: 15,
+        outputEnable: 11
+    }
+}
+
+module.exports = config;
