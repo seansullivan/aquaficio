@@ -1,14 +1,6 @@
 var Q = require('q'),
-    winston = require('winston');
 
-var logger = new winston.Logger();
-
-logger.add(winston.transports.Console, {
-    level: 'debug',
-    colorize: true,
-    prettyPrint: true,
-    depth: 5
-});
+    logger = require('../logger');
 
 var interfaceMock = {
     open: function (pin, options, callback) {
