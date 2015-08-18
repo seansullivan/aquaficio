@@ -37,9 +37,24 @@ var activeProgram = programFactory.create(zones, enabledProgram);
 
 // get active zone from current state
 function getActiveZone() {
-    return _.find(currentState, function (zone) {
+    return _.findKey(currentState, function (zone) {
         return zone !== null;
     });
+}
+
+/**
+ * Update the "state machine" to identify which zone is active.
+ *
+ * By passing null as the zoneId, state will be set to no active zones
+ */
+function updateActiveZone(zoneId) {
+    currentState = _.mapValues(currentState, function () {
+        return null;
+    });
+
+    if (zoneId !== null) {
+        currentState[zoneId] = true;
+    }
 }
 
 var initialize = function () {
@@ -52,15 +67,18 @@ var initialize = function () {
 
         return gpio.setupPins()
             .then(function () {
-                return gpio.disableShiftRegisterOutput();
-            })
-            .then(function () {
                 logger.debug('----------------------');
                 return gpio.shiftOutput(zones, null);
             })
             .then(function () {
                 logger.debug('----------------------');
                 return gpio.enableShiftRegisterOutput();
+            })
+            .fail(function (error) {
+                logger.error(error);
+                logger.error(error.stack);
+
+                return Q.reject(error);
             });
     },
 
@@ -83,13 +101,17 @@ var initialize = function () {
                 return Q();
             }
 
-            console.log('there is an active program and zone');
+            logger.debug('There is an active program and zone: '+currentlyActiveZone+', resetting.');
+
+            updateActiveZone(null);
 
             // No zones are to be active
             return gpio.shiftOutput(zones, null);
         }
 
         logger.debug("[!] Zone _%s_ is to be active", zoneToBeActive);
+
+        updateActiveZone(zoneToBeActive);
 
         return gpio.shiftOutput(zones, zoneToBeActive);
     },
@@ -122,7 +144,7 @@ var onExit = function () {
 
     gpio.shiftOutput(zones, null)
         .then(function () {
-            return closePins();
+            return gpio.closePins();
         })
         .then(function () {
             logger.info("All pins closed. Exiting");

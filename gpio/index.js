@@ -12,31 +12,42 @@ var util = require('util'),
 
 module.exports = {
     setupPins: function () {
-        var pinCommands = [
-            Q.npost(gpioInterface, 'open', [config.pins.outputEnable, GPIO_PIN_OUTPUT]),
-            Q.npost(gpioInterface, 'write', [config.pins.outputEnable, true]),
-            Q.npost(gpioInterface, 'open', [config.pins.clock, GPIO_PIN_OUTPUT]),
-            Q.npost(gpioInterface, 'write', [config.pins.clock, false]),
-            Q.npost(gpioInterface, 'open', [config.pins.data, GPIO_PIN_OUTPUT]),
-            Q.npost(gpioInterface, 'write', [config.pins.data, false]),
-            Q.npost(gpioInterface, 'open', [config.pins.latch, GPIO_PIN_OUTPUT]),
-            Q.npost(gpioInterface, 'write', [config.pins.latch, false]),
-        ];
-
-        // execute all pin commands in sequence
-        return pinCommands.reduce(Q.when, Q());
+        return Q.npost(gpioInterface, 'open', [config.pins.clock, GPIO_PIN_OUTPUT])
+            .then(function () {
+                return Q.npost(gpioInterface, 'write', [config.pins.clock, false]);
+            })
+            .then(function () {
+                return Q.npost(gpioInterface, 'open', [config.pins.outputEnable, GPIO_PIN_OUTPUT]);
+            })
+            .then(function () {
+                // disable shift register output
+                return Q.npost(gpioInterface, 'write', [config.pins.outputEnable, true]);
+            })
+            .then(function () {
+                return Q.npost(gpioInterface, 'open', [config.pins.data, GPIO_PIN_OUTPUT]);
+            })
+            .then(function () {
+                return Q.npost(gpioInterface, 'write', [config.pins.data, false]);
+            })
+            .then(function () {
+                return Q.npost(gpioInterface, 'open', [config.pins.latch, GPIO_PIN_OUTPUT]);
+            })
+            .then(function () {
+                return Q.npost(gpioInterface, 'write', [config.pins.latch, false]);
+            });
     },
 
     closePins: function () {
-        var pinCommands = [
-            Q.ninvoke(gpioInterface, 'close', config.pins.outputEnable),
-            Q.ninvoke(gpioInterface, 'close', config.pins.clock),
-            Q.ninvoke(gpioInterface, 'close', config.pins.data),
-            Q.ninvoke(gpioInterface, 'close', config.pins.latch),
-        ];
-
-        // execute all pin commands in sequence
-        return pinCommands.reduce(Q.when, Q());
+        return Q.ninvoke(gpioInterface, 'close', config.pins.outputEnable)
+            .then(function () {
+                return Q.ninvoke(gpioInterface, 'close', config.pins.clock);
+            })
+            .then(function () {
+                return Q.ninvoke(gpioInterface, 'close', config.pins.data);
+            })
+            .then(function () {
+                return Q.ninvoke(gpioInterface, 'close', config.pins.latch);
+            });
     },
 
     enableShiftRegisterOutput: function () {
@@ -51,25 +62,39 @@ module.exports = {
         var todo = [],
             debugOutput = '';
 
-        todo.push(Q.npost(gpioInterface, 'write', [config.pins.clock, false]));
-        todo.push(Q.npost(gpioInterface, 'write', [config.pins.latch, false]));
+        return Q.npost(gpioInterface, 'write', [config.pins.clock, false])
+            .then(function () {
+                return Q.npost(gpioInterface, 'write', [config.pins.latch, false]);
+            })
+            .then(function () {
+                zonesReversed = _(zones)
+                    .clone(true)
+                    .reverse();
 
-        _.forEach(zones, function (zone) {
-            todo.push(Q.npost(gpioInterface, 'write', [config.pins.clock, false]));
+                return _.reduce(zonesReversed, function (zoneTodoStack, zone) {
+                    return zoneTodoStack.then(function () {
+                        var dataValue = zone.id === activeZone ? true : false;
 
-            var dataValue = zone.id === activeZone ? true : false;
+                        debugOutput += dataValue === true ? '1' : '0';
 
-            todo.push(Q.npost(gpioInterface, 'write', [config.pins.data, dataValue]));
+                        return Q.npost(gpioInterface, 'write', [config.pins.clock, false])
+                            .then(function () {
+                                return Q.npost(gpioInterface, 'write', [config.pins.data, dataValue]);
+                            })
+                            .then(function () {
+                                return Q.npost(gpioInterface, 'write', [config.pins.clock, true]);
+                            });
+                    });
+                }, Q());
+            })
+            .then(function () {
+                logger.debug(util.format("Writing byte: %s", debugOutput));
 
-            debugOutput += dataValue === true ? '1' : '0';
-
-            todo.push(Q.npost(gpioInterface, 'write', [config.pins.clock, true]));
-        });
-
-        todo.push(Q.npost(gpioInterface, 'write', [config.pins.latch, true]));
-
-        logger.debug(util.format("Writing byte: %s", debugOutput));
-
-        return todo.reduce(Q.when, Q());
+                return Q.npost(gpioInterface, 'write', [config.pins.latch, true]);
+            })
+            .fail(function (error) {
+                logger.error(error);
+                logger.error(error.stack);
+            });
     }
 }

@@ -2,6 +2,8 @@ var Q = require('q'),
     _ = require('lodash'),
     moment = require('moment'),
 
+    logger = require('../logger'),
+
     Zone = require('./zone');
 
 var TYPE_INTERVAL = 'interval',
@@ -62,10 +64,11 @@ var TYPE_INTERVAL = 'interval',
                 if(!_.has(startTime, 'time')) {
                     throw new Error("Unable to parse start time for program");
                 }
-                var hour = _.has(startTime.time, 'hour') ? startTime.time.hour : 0,
-                    minute = _.has(startTime.time, 'minute') ? startTime.time.minute : 0;
 
-                if(!hour) {
+                var hour = _.get(startTime.time, 'hour', null),
+                    minute = _.get(startTime.time, 'minute', 0);
+
+                if(hour === null) {
                     logger.warn("Program does not have an hour");
                     return null;
                 }

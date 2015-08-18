@@ -1,3 +1,4 @@
 config.js
 manifest.json
 node_modules/**
+dev/**
