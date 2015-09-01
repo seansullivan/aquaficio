@@ -4,6 +4,7 @@
   "description": "OpenSprinkler controller program",
   "main": "app.js",
   "dependencies": {
+    "aws-sdk": "^2.1.45",
     "lodash": "^3.9.3",
     "moment": "^2.10.3",
     "pi-gpio": "0.0.7",

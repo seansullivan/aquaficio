@@ -9,7 +9,6 @@ var util = require('util'),
 
     GPIO_PIN_OUTPUT = "output";
 
-
 module.exports = {
     setupPins: function () {
         return Q.npost(gpioInterface, 'open', [config.pins.clock, GPIO_PIN_OUTPUT])

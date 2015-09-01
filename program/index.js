@@ -47,35 +47,15 @@ var TYPE_INTERVAL = 'interval',
             return zone.duration;
         },
 
-        _setStartTimes: function (runAt) {
-            // Start building a list of start times, need to know the start time for
-            // each run so we can determine end time and know if we should currently
-            // be running a program
-            var startTimes = runAt;
+        /**
+         * Start building a list of start times, need to know the start time for
+         * each run so we can determine end time and know if we should currently
+         * be running a program
+         *
+         * @param {[type]} startTimes [description]
+         */
+        setStartTimes: function (startTimes) {
 
-            // if any start times are events, satisfy those events to determine the start time from it
-            startTimes = _.map(startTimes, function (startTime) {
-                if(_.has(startTime, 'event')) {
-                    // convert event criteria to timestamp
-                    logger.warn("Event parsing not yet implemented");
-                    return null;
-                }
-
-                if(!_.has(startTime, 'time')) {
-                    throw new Error("Unable to parse start time for program");
-                }
-
-                var hour = _.get(startTime.time, 'hour', null),
-                    minute = _.get(startTime.time, 'minute', 0);
-
-                if(hour === null) {
-                    logger.warn("Program does not have an hour");
-                    return null;
-                }
-
-                // Build the start time moment object
-                return moment().startOf('day').hour(hour).minute(minute);
-            });
 
             // filter out any null start times
             startTimes = _.filter(startTimes, null);

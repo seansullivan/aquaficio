@@ -12,7 +12,9 @@ var Q = require('q'),
 
     manifest = require('./manifest.json'),
 
-    logger = require('./logger');
+    logger = require('./logger'),
+
+    util = require('util');
 
 var zones = manifest.zones,
 
@@ -23,6 +25,12 @@ var zones = manifest.zones,
     enabledProgram = _.first(enabledPrograms);
 
     currentState = {},
+
+    programRunHistory = {
+        started_at: null,
+        zones: [],
+        completed_at: null
+    },
 
     programFactory = require('./program');
 
@@ -37,9 +45,46 @@ var activeProgram = programFactory.create(zones, enabledProgram);
 
 // get active zone from current state
 function getActiveZone() {
-    return _.findKey(currentState, function (zone) {
+    var activeZoneId = _.findKey(currentState, function (zone) {
         return zone !== null;
     });
+
+    return activeZoneId || null;
+}
+
+
+function sendNotifications (message) {
+    var notifications = _.get(config, 'notifications', []);
+    if (_.isEmpty(notifications)) {
+        return Q();
+    }
+
+    var notification = _.first(notifications);
+
+    return sendSMS(notification, message);
+}
+
+function sendSMS (notification, message) {
+    var AWS = require('aws-sdk');
+
+    var SNS = new AWS.SNS({
+        accessKeyId: config.aws.accessKeyId,
+        secretAccessKey: config.aws.secretAccessKey,
+        region: "us-east-1"
+    });
+
+    var publishParams = {
+        TopicArn: notification.topicArn,
+        Message: message
+    };
+
+
+    return Q.ninvoke(SNS, 'publish', publishParams)
+        .fail(function (error) {
+            logger.error(error);
+
+            return Q.reject();
+        });
 }
 
 /**
@@ -89,7 +134,7 @@ var initialize = function () {
 
             zoneToBeActive = activeProgram.getZoneToBeActive(now),
 
-            currentlyActiveZone = null;
+            currentlyActiveZone = getActiveZone();
 
         if(!zoneToBeActive) {
             // No zone is to be active now, check and see if our state machine
@@ -101,19 +146,51 @@ var initialize = function () {
                 return Q();
             }
 
-            logger.debug('There is an active program and zone: '+currentlyActiveZone+', resetting.');
+            // Ending program
+            logger.debug("[!] Program %s has completed...", activeProgram.settings.id);
 
-            updateActiveZone(null);
+            programRunHistory.completed_at = moment().format();
+
+            var message = util.format('Program %s has completed at %s, watering zones %j', programRunHistory.id, programRunHistory.completed_at, programRunHistory.zones);
+
+            logger.info('[!] %s', message);
 
             // No zones are to be active
-            return gpio.shiftOutput(zones, null);
+            return gpio.shiftOutput(zones, null)
+                .then(function () {
+                    updateActiveZone(null);
+
+                    return sendNotifications(message);
+                })
+                .then(function () {
+                    return Q(true);
+                });
+        }
+
+        var sendStartNotifications = Q();
+
+        if(currentlyActiveZone === null) {
+            programRunHistory.id = activeProgram.settings.id;
+            programRunHistory.started_at = moment().format();
+
+            var message = util.format('Program %s has started at %s', programRunHistory.id, programRunHistory.started_at);
+            logger.info('[!] %s', message);
+
+            sendStartNotifications = sendNotifications(message);
         }
 
         logger.debug("[!] Zone _%s_ is to be active", zoneToBeActive);
 
         updateActiveZone(zoneToBeActive);
 
-        return gpio.shiftOutput(zones, zoneToBeActive);
+        if (!_.includes(programRunHistory.zones, zoneToBeActive)) {
+            programRunHistory.zones.push(zoneToBeActive);
+        }
+
+        return sendStartNotifications
+            .then(function () {
+                return gpio.shiftOutput(zones, zoneToBeActive);
+            });
     },
 
     toProcess,

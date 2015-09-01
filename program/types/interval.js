@@ -1,4 +1,6 @@
-var _ = require('lodash');
+var _ = require('lodash'),
+
+    moment = require('moment');
 
 var IntervalProgram = function (settings) {
     this.settings = settings;
@@ -20,7 +22,35 @@ var IntervalProgram = function (settings) {
             this.totalDuration = totalDuration;
         }
 
-        this._setStartTimes(settings.run_at);
+        // base has a setStartTimes method that cleanses and sets
+        this.setStartTimes(this.getStartTimes());
+    }
+
+    this.getStartTimes = function () {
+        var startTimes = settings.run_at;
+
+        return _.map(startTimes, function (startTime) {
+            if(_.has(startTime, 'event')) {
+                // convert event criteria to timestamp
+                logger.warn("Event parsing not yet implemented");
+                return null;
+            }
+
+            if(!_.has(startTime, 'time')) {
+                throw new Error("Unable to parse start time for program");
+            }
+
+            var hour = _.get(startTime.time, 'hour', null),
+                minute = _.get(startTime.time, 'minute', 0);
+
+            if(hour === null) {
+                logger.warn("Program does not have an hour");
+                return null;
+            }
+
+            // Build the start time moment object
+            return moment().startOf('day').hour(hour).minute(minute);
+        });
     }
 };
 
