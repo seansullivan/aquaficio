@@ -1,6 +1,7 @@
 var Q = require('q'),
     _ = require('lodash'),
     moment = require('moment'),
+    util = require('util'),
 
     logger = require('../logger'),
 
@@ -55,10 +56,10 @@ var TYPE_INTERVAL = 'interval',
          * @param {[type]} startTimes [description]
          */
         setStartTimes: function (startTimes) {
-
-
             // filter out any null start times
             startTimes = _.filter(startTimes, null);
+
+            logger.debug(util.format('Start times set to %j', startTimes));
 
             this.startTimes = startTimes;
         },
@@ -106,6 +107,10 @@ var TYPE_INTERVAL = 'interval',
 
         getTotalDuration: function () {
             return this.totalDuration;
+        },
+
+        onRunComplete: function () {
+            // intentionally left blank
         }
     };
 

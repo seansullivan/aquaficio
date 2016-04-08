@@ -55,7 +55,8 @@ function getActiveZone() {
 
 function sendNotifications (message) {
     var notifications = _.get(config, 'notifications', []);
-    if (_.isEmpty(notifications)) {
+
+    if (_.isEmpty(notifications) || process.env.NODE_ENV === 'test') {
         return Q();
     }
 
@@ -77,7 +78,6 @@ function sendSMS (notification, message) {
         TopicArn: notification.topicArn,
         Message: message
     };
-
 
     return Q.ninvoke(SNS, 'publish', publishParams)
         .fail(function (error) {
@@ -163,6 +163,8 @@ var initialize = function () {
                     return sendNotifications(message);
                 })
                 .then(function () {
+                    activeProgram.onRunComplete();
+
                     return Q(true);
                 });
         }

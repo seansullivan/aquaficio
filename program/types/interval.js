@@ -27,7 +27,9 @@ var IntervalProgram = function (settings) {
     }
 
     this.getStartTimes = function () {
-        var startTimes = settings.run_at;
+        var startTimes = settings.run_at,
+
+            self = this;
 
         return _.map(startTimes, function (startTime) {
             if(_.has(startTime, 'event')) {
@@ -49,8 +51,29 @@ var IntervalProgram = function (settings) {
             }
 
             // Build the start time moment object
-            return moment().startOf('day').hour(hour).minute(minute);
+            var whenToRun = moment().startOf('day').hour(hour).minute(minute);
+
+            /**
+             * Determine whether the run has completed today, if so, schedule
+             * tomorrow's run.
+             *
+             * @type {Boolean}
+             */
+            var runHasCompleted = moment(whenToRun).add(self.totalDuration, 'ms').isBefore(moment());
+
+            if (runHasCompleted) {
+                whenToRun = moment().startOf('day').add(1, 'd').hour(hour).minute(minute);
+            }
+
+            return whenToRun;
         });
+    }
+
+    /**
+     * The run has completed, schedule the next run.
+     */
+    this.onRunComplete = function () {
+        this.setStartTimes(this.getStartTimes());
     }
 };
 
