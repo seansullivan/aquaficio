@@ -116,7 +116,11 @@ var TYPE_INTERVAL = 'interval',
 
 module.exports = {
     create: function (availableZones, programSettings) {
-        if(!_.has(programSettings, 'type')) {
+        if (_.isEmpty(availableZones)) {
+            logger.warn('No available zones provided for program.');
+        }
+
+        if (!_.has(programSettings, 'type')) {
             throw new Error("Invalid program type");
         };
 

@@ -1,5 +1,6 @@
 {
   "name": "aquaficio",
+  "repository": "https://github.com/seansullivan/aquaficio",
   "version": "0.0.1",
   "description": "OpenSprinkler controller program",
   "main": "app.js",
@@ -11,7 +12,11 @@
     "q": "^1.4.1",
     "winston": "^1.0.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5",
+    "sinon": "^1.17.3"
+  },
   "author": "Sean Sullivan <seansulli@gmail.com>",
   "license": "MIT"
 }
